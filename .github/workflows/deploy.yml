@@ -70,5 +70,7 @@ jobs:
 
           # Apply Kubernetes manifests from the specified directory
           kubectl apply -f /root/LarawelTask1/k8s-manifest/frontend/deployment.yml
-
+          
+          kubectl rollout restart deployment/larawel-frontend
+          
           EOF
