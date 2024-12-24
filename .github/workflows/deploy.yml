@@ -1,0 +1,69 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the repository
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Configure AWS credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    # SSH into the server, pull the latest code, and build the Docker image
+    - name: SSH into Server and Build Docker Image
+      uses: appleboy/ssh-action@v0.1.9
+      with:
+        host: 52.91.201.67
+        username: ubuntu
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Navigate to the correct directory where the Dockerfile is located
+          cd /root/LarawelTask1
+
+          # Pull the latest code from GitHub
+          git pull origin main
+
+          # Build the Docker image
+          REPO_URI=766822611343.dkr.ecr.us-east-1.amazonaws.com/laraeks
+          docker build -t $REPO_URI:latest .
+
+          # Log in to Amazon ECR
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $REPO_URI
+
+          # Push the Docker image to ECR
+          docker push $REPO_URI:latest
+
+    # Set up the Kubernetes Kubeconfig
+    - name: Set up Kubeconfig for Kubernetes
+      run: |
+        mkdir -p ~/.kube
+        echo "$KUBECONFIG_CONTENT" | base64 -d > ~/.kube/config
+      env:
+        KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_CONTENT }}
+
+    # Deploy to Kubernetes
+    - name: Deploy to Kubernetes
+      uses: appleboy/ssh-action@v0.1.9
+      with:
+        host: 52.91.201.67
+        username: ubuntu
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Apply Kubernetes manifests from the specified directory
+          kubectl apply -f /root/LarawelTask1/k8s-manifest/frontend/deployment.yml
+          
+          # Optionally, restart the deployment (if necessary)
+          kubectl rollout restart deployment/frontend  # Replace with your actual deployment name
