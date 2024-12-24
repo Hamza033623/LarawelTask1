@@ -56,15 +56,7 @@ jobs:
           docker push $REPO_URI:latest
 
           EOF
-
-    # Set up Kubernetes Kubeconfig
-    - name: Set up Kubeconfig for Kubernetes
-      run: |
-        mkdir -p ~/.kube
-        echo "$KUBECONFIG_CONTENT" | base64 -d > ~/.kube/config
-      env:
-        KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_CONTENT }}
-
+  
     # Deploy to Kubernetes
     - name: Deploy to Kubernetes
       uses: appleboy/ssh-action@v0.1.9
