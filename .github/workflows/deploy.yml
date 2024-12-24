@@ -22,7 +22,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    # SSH into the server, pull the latest code, and build the Docker image
+    # SSH into the server, pull code, build Docker image, and push to ECR
     - name: SSH into Server and Build Docker Image
       uses: appleboy/ssh-action@v0.1.9
       with:
@@ -30,10 +30,16 @@ jobs:
         username: ubuntu
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          # Ensure Docker is installed and the user has permission to use Docker
+          sudo usermod -aG docker ubuntu
+          sudo systemctl restart docker
+
           # Navigate to the correct directory where the Dockerfile is located
           cd /root/LarawelTask1
 
-          # Pull the latest code from GitHub
+          # Ensure Git is initialized
+          git fetch --all
+          git checkout main
           git pull origin main
 
           # Build the Docker image
@@ -46,7 +52,7 @@ jobs:
           # Push the Docker image to ECR
           docker push $REPO_URI:latest
 
-    # Set up the Kubernetes Kubeconfig
+    # Set up Kubernetes Kubeconfig
     - name: Set up Kubeconfig for Kubernetes
       run: |
         mkdir -p ~/.kube
