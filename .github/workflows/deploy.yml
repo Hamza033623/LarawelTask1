@@ -28,10 +28,10 @@ jobs:
       with:
         host: 52.91.201.67
         username: ubuntu
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}  # Correctly reference the SSH private key secret
         script: |
           # Switch to root user using sudo su -
-          sudo su -
+          sudo su - << 'EOF'
 
           # Navigate to the correct directory where the Dockerfile is located
           cd /root/LarawelTask1
@@ -55,6 +55,8 @@ jobs:
           # Push the Docker image to ECR
           docker push $REPO_URI:latest
 
+          EOF
+
     # Set up Kubernetes Kubeconfig
     - name: Set up Kubeconfig for Kubernetes
       run: |
@@ -69,13 +71,15 @@ jobs:
       with:
         host: 52.91.201.67
         username: ubuntu
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}  # Use the same SSH private key secret here
         script: |
           # Switch to root user using sudo su -
-          sudo su -
+          sudo su - << 'EOF'
 
           # Apply Kubernetes manifests from the specified directory
           kubectl apply -f /root/LarawelTask1/k8s-manifest/frontend/deployment.yml
-          
+
           # Optionally, restart the deployment (if necessary)
           kubectl rollout restart deployment/frontend  # Replace with your actual deployment name
+
+          EOF
